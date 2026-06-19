@@ -37,7 +37,7 @@
 <div id="game-container">
     <canvas id="gameCanvas" width="900" height="450"></canvas>
     <div class="info">
-        ← → : 移動  /  SPACE : ジャンプ  /  R : リトライ
+        ← → / A D : 移動  /  SPACE / ↑ : ジャンプ  /  R : リセット(いつでも可)
     </div>
 </div>
 
@@ -112,6 +112,7 @@ function initStage() {
         { x: 1000, y: 400, width: 600, height: 50, type: 'floor' },
         
         // 本家風の緑の障害物（土管に見立てたブロック）
+        { x: 1168, y: 300, width: 32, height: 32, type: 'hiddenSpike', triggered: false },
         { x: 1200, y: 336, width: 48, height: 64, type: 'pipe' },
         { x: 1450, y: 304, width: 48, height: 96, type: 'pipe' }, // ここを越えるとミサイル発動
 
@@ -140,29 +141,35 @@ function initStage() {
         { x: 2796, y: 272, width: 32, height: 32, type: 'brick' },
         { x: 2828, y: 368, width: 32, height: 32, type: 'brick' },
         { x: 2828, y: 336, width: 32, height: 32, type: 'brick' },
-        { x: 2828, y: 304, width: 32, height: 32, type: 'brick' },
+        { x: 2828, y: 304, width: 32, height: 32, height: 32, type: 'brick' },
         { x: 2828, y: 272, width: 32, height: 32, type: 'brick' },
         { x: 2828, y: 240, width: 32, height: 32, type: 'brick' },
 
         // ★偽ゴール（ポール）
         { x: 2920, y: 150, width: 8, height: 250, type: 'fakeGoal' },
-        
-        // // ★ポールの手前でジャンプを遮る隠し壁
-        // { x: 2860, y: 180, width: 32, height: 220, type: 'hidden', triggered: false },
 
-        // 本物のゴールエリア
-        { x: 3450, y: 400, width: 1000, height: 50, type: 'floor' },
+        // ーーー 本物ゴールエリア（細工部分） ーーー
+        // ① 一番手前の残る床（幅32）
+        { x: 3450, y: 400, width: 32, height: 50, type: 'floor' },
+        
+        // ② 着地すると一瞬で消える罠床（幅96）
+        { x: 3482, y: 400, width: 96, height: 50, type: 'disappearFloor', triggered: false },
+        
+        // ③ 消える床のさらに先にある、本物のゴールがある安全な床
+        { x: 3578, y: 400, width: 872, height: 50, type: 'floor' },
+
         // ★穴の手前にある「初見殺し隠しブロック」
         { x: 3310, y: 250, width: 32, height: 32, type: 'hidden', triggered: false },
         { x: 3750, y: 150, width: 8, height: 250, type: 'realGoal' }
     ];
 }
 
-// キー入力
 const keys = {};
 window.addEventListener("keydown", e => {
     keys[e.code] = true;
-    if (e.code === "KeyR") if (!gameActive || gameCleared) initStage();
+    if (e.code === "KeyR") {
+        initStage();
+    }
 });
 window.addEventListener("keyup", e => keys[e.code] = false);
 
@@ -181,17 +188,18 @@ function drawSpike(x, y, width, height) {
     }
 }
 
-// 描画：各ブロック（本家ドット絵風デザイン）
+// 描画：各ブロック
 function drawBlock(block) {
     let rx = block.x - cameraX;
     let ry = block.y;
 
-    if (block.type === 'floor') {
+    if (block.type === 'disappearFloor' && block.triggered) return;
+
+    if (block.type === 'floor' || block.type === 'disappearFloor') {
         ctx.fillStyle = "#cc9966";
         ctx.fillRect(rx, ry, block.width, block.height);
         ctx.fillStyle = "#000";
-        ctx.fillRect(rx, ry, block.width, 2); // 上の境界線
-        // ドットの模様
+        ctx.fillRect(rx, ry, block.width, 2);
         ctx.fillStyle = "#996633";
         for(let i=0; i<block.width; i+=16) ctx.fillRect(rx+i, ry+10, 4, 4);
     } 
@@ -200,7 +208,6 @@ function drawBlock(block) {
         ctx.fillRect(rx, ry, block.width, block.height);
         ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
         ctx.strokeRect(rx, ry, block.width, block.height);
-        // レンガの目地
         ctx.beginPath();
         ctx.moveTo(rx + block.width/2, ry); ctx.lineTo(rx + block.width/2, ry + block.height/2);
         ctx.moveTo(rx, ry + block.height/2); ctx.lineTo(rx + block.width, ry + block.height/2);
@@ -219,7 +226,7 @@ function drawBlock(block) {
         ctx.fillStyle = "#00cc33";
         ctx.fillRect(rx, ry, block.width, block.height);
         ctx.strokeStyle = "#000"; ctx.strokeRect(rx, ry, block.width, block.height);
-        ctx.fillStyle = "#009922"; ctx.fillRect(rx, ry, 8, block.height); // 陰影
+        ctx.fillStyle = "#009922"; ctx.fillRect(rx, ry, 8, block.height);
     }
     else if (block.type === 'hidden' || block.type === 'hiddenSpike') {
         if (!block.triggered) return; 
@@ -237,7 +244,6 @@ function drawBlock(block) {
     else if (block.type === 'fakeGoal' || block.type === 'realGoal') {
         ctx.fillStyle = "#ffffff"; ctx.fillRect(rx, ry, block.width, block.height);
         ctx.fillStyle = "#000"; ctx.strokeRect(rx, ry, block.width, block.height);
-        // 旗
         ctx.fillStyle = block.type === 'fakeGoal' ? "#ff3333" : "#33cc33";
         ctx.beginPath();
         ctx.moveTo(rx, ry + 10); ctx.lineTo(rx - 25, ry + 22); ctx.lineTo(rx, ry + 35);
@@ -245,50 +251,37 @@ function drawBlock(block) {
     }
 }
 
-// 描画：キャラクター（本家比率ドット絵風）
+// 描画：キャラクター
 function drawCatCharacter(x, y, isShobon) {
     ctx.save();
     ctx.translate(x - cameraX, y);
-
     ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = "#000000"; ctx.lineWidth = 1.5;
 
-    // 耳
     ctx.beginPath(); ctx.moveTo(2, 8); ctx.lineTo(7, 0); ctx.lineTo(12, 8); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(20, 8); ctx.lineTo(25, 0); ctx.lineTo(30, 8); ctx.fill(); ctx.stroke();
-
-    // 輪郭（正方形に近い本家の丸み）
     ctx.beginPath(); ctx.arc(16, 18, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-
-    // 手足
     ctx.beginPath(); ctx.arc(3, 24, 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.arc(29, 24, 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
-    // 顔のパーツ
     ctx.fillStyle = "#000000";
     if (isShobon) {
-        // しょぼんの目（縦棒）
-        ctx.fillRect(10, 12, 2, 5);
-        ctx.fillRect(20, 12, 2, 5);
-        ctx.font = "11px monospace"; ctx.textAlign = "center";
-        ctx.fillText("ω", 16, 25);
+        ctx.fillRect(10, 12, 2, 5); ctx.fillRect(20, 12, 2, 5);
+        ctx.font = "11px monospace"; ctx.textAlign = "center"; ctx.fillText("ω", 16, 25);
     } else {
-        // モララーの目（点）
         ctx.beginPath(); ctx.arc(11, 14, 1.5, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.arc(21, 14, 1.5, 0, Math.PI * 2); ctx.fill();
-        ctx.font = "10px monospace"; ctx.textAlign = "center";
-        ctx.fillText("∀", 16, 24);
+        ctx.font = "10px monospace"; ctx.textAlign = "center"; ctx.fillText("∀", 16, 24);
     }
     ctx.restore();
 }
 
-// 描画：罠アイテム（変なキノコ）
+// 描画：罠アイテム
 function drawItem() {
     if (!item.active) return;
     let rx = item.x - cameraX;
     ctx.fillStyle = "#ff6666"; ctx.strokeStyle = "#000";
     ctx.beginPath(); ctx.arc(rx + 14, item.y + 14, 14, 0, Math.PI, true); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.fillStyle = "#fff"; ctx.fillRect(rx + 6, item.y + 14, 16, 14); ctx.strokeRect(rx + 6, item.y + 14, 16, 14);
-    // 変な模様（顔）
     ctx.fillStyle = "#000"; ctx.fillRect(rx + 10, item.y + 18, 2, 4); ctx.fillRect(rx + 16, item.y + 18, 2, 4);
 }
 
@@ -302,20 +295,18 @@ function update() {
         return;
     }
 
-    // 左右移動（本家風のやや重い慣性）
-    if (keys["ArrowRight"]) player.vx = player.speed;
-    else if (keys["ArrowLeft"]) player.vx = -player.speed;
-    else player.vx *= 0.75; // 摩擦
+    if (keys["ArrowRight"] || keys["KeyD"]) player.vx = player.speed;
+    else if (keys["ArrowLeft"] || keys["KeyA"]) player.vx = -player.speed;
+    else player.vx *= 0.75;
 
-    // ジャンプ制御（可変システム）
-    if (keys["Space"]) {
+    if (keys["Space"] || keys["ArrowUp"]) {
         if (player.grounded) {
             player.vy = -player.jumpForce;
             player.grounded = false;
             player.isJumping = true;
         }
     } else {
-        if (player.vy < -3) player.vy = -3; // ボタンを離したら上昇をストップ（本家挙動）
+        if (player.vy < -3) player.vy = -3;
     }
 
     player.vy += gravity;
@@ -325,21 +316,15 @@ function update() {
 
     if (player.x < cameraX) player.x = cameraX;
 
-    // スクリーンスクロール（前進のみの一方通行）
     if (player.x > cameraX + 400) {
         cameraX = player.x - 400;
     }
 
     // 罠アイテムの物理挙動
     if (item.active) {
-        item.vy += gravity;
-        item.x += item.vx;
-        item.y += item.vy;
-        item.grounded = false;
-
-        // アイテムとブロックの衝突判定
+        item.vy += gravity; item.x += item.vx; item.y += item.vy; item.grounded = false;
         blocks.forEach(b => {
-            if (b.type !== 'hidden' || b.triggered) {
+            if ((b.type !== 'hidden' && b.type !== 'disappearFloor') || b.triggered) {
                 if (item.x < b.x + b.width && item.x + item.width > b.x && item.y < b.y + b.height && item.y + item.height > b.y) {
                     if (item.vy > 0 && item.y + item.height - item.vy <= b.y) {
                         item.y = b.y - item.height; item.vy = 0; item.grounded = true;
@@ -348,21 +333,16 @@ function update() {
                 }
             }
         });
-
-        // プレイヤーがアイテムを食べてしまったら即死
         if (player.x < item.x + item.width && player.x + player.width > item.x && player.y < item.y + item.height && player.y + player.height > item.y) {
             triggerGameOver("怪しい食べ物を口にして体が爆発したお。");
         }
     }
 
-    // ミサイル（おにぎり）トリガー条件変更：2つ目の土管を越えたら
-    if (player.x > 1450 && !missile.triggered) {
-        missile.triggered = true;
-    }
+    // ミサイル
+    if (player.x > 1450 && !missile.triggered) missile.triggered = true;
     if (missile.triggered) {
         missile.x -= missile.speed;
-        if (player.x < missile.x + missile.width && player.x + player.width > missile.x &&
-            player.y < missile.y + missile.height && player.y + player.height > missile.y) {
+        if (player.x < missile.x + missile.width && player.x + player.width > missile.x && player.y < missile.y + missile.height && player.y + player.height > missile.y) {
             triggerGameOver("おにぎり（物理）の超高速直撃を受けたお。");
         }
     }
@@ -372,14 +352,9 @@ function update() {
         if (!enemy.alive) return;
         enemy.x += enemy.speed;
         if (enemy.x < enemy.leftBound || enemy.x > enemy.rightBound) enemy.speed *= -1;
-
-        if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x &&
-            player.y < enemy.y + enemy.height && player.y + player.height > enemy.y) {
-            // 本家の踏みつけ判定
+        if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x && player.y < enemy.y + enemy.height && player.y + player.height > enemy.y) {
             if (player.vy > 0 && player.y + player.height - player.vy <= enemy.y + 12) {
-                enemy.alive = false;          
-                player.vy = -7.5; // ポンッと跳ねる
-                player.y = enemy.y - player.height;
+                enemy.alive = false; player.vy = -7.5; player.y = enemy.y - player.height;
             } else {
                 triggerGameOver("モララーに触れて即死したお。");
             }
@@ -388,24 +363,37 @@ function update() {
 
     // 地形衝突判定
     blocks.forEach(block => {
-        if (block.type === 'dropFloor' && block.triggered) {
-            block.vy += 0.4; block.y += block.vy;
-        }
+        if (block.type === 'dropFloor' && block.triggered) { block.vy += 0.4; block.y += block.vy; }
         if (block.type === 'fallingCeiling') {
             if (player.x > 1920 && !block.triggered) block.triggered = true;
             if (block.triggered && block.y < 250) { block.vy += 0.8; block.y += block.vy; }
         }
 
-        // 隠しブロック判定
-        if ((block.type === 'hidden' || block.type === 'hiddenSpike') && !block.triggered) {
-            if (player.x + player.width > block.x && player.x < block.x + block.width) {
-                // 下から頭をぶつけた時のみ出現
-                if (player.y <= block.y + block.height && player.y + player.vy < block.y + block.height && player.vy < 0) {
-                    block.triggered = true; player.vy = 0; player.y = block.y + block.height;
-                    if (block.type === 'hiddenSpike') triggerGameOver("予測不能のトゲが脳天を貫いたお。");
+        if (block.type === 'disappearFloor' && block.triggered) return;
+
+        // ✅ 隠しブロック判定（新規ロジックに差し替え）
+        if (block.type === 'hidden' || block.type === 'hiddenSpike') {
+            if (player.x < block.x + block.width && player.x + player.width > block.x &&
+                player.y < block.y + block.height && player.y + player.height > block.y) {
+                
+                if (!block.triggered) {
+                    // まだ出現していない場合：下から頭をぶつけた時のみ出現フラグを立てる
+                    if (player.vy < 0 && (player.y - player.vy) >= block.y + block.height) {
+                        block.triggered = true;
+                        player.vy = 0;
+                        player.y = block.y + block.height;
+                        
+                        // もし中身がトゲ付きの隠しブロックなら、頭突きした時点で即死
+                        if (block.type === 'hiddenSpike') {
+                            triggerGameOver("予測不能のトゲが脳天を貫いたお。");
+                        }
+                    }
+                } else {
+                    // すでに出現している場合：全方位（上・左右）どの衝突でも即死させる
+                    triggerGameOver("出現した隠しブロックに激突して粉砕したお。");
                 }
             }
-            return;
+            return; 
         }
 
         // ハテナブロック（毒キノコ罠）
@@ -413,13 +401,12 @@ function update() {
             if (player.x + player.width > block.x && player.x < block.x + block.width) {
                 if (player.y <= block.y + block.height && player.y + player.vy < block.y + block.height && player.vy < 0) {
                     block.triggered = true; player.vy = 0; player.y = block.y + block.height;
-                    // アイテムを上空に出現させる
                     item.x = block.x; item.y = block.y - 30; item.active = true; item.vy = -4;
                 }
             }
         }
 
-        // トゲ・偽ゴール
+        // トゲ・ゴール
         if (block.type === 'spike' || (block.type === 'hiddenSpike' && block.triggered)) {
             if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) {
                 triggerGameOver("トゲを踏んでお亡くなりになったお。");
@@ -446,6 +433,7 @@ function update() {
 
                 if (player.vy > 0 && player.y + player.height - player.vy <= block.y) {
                     player.y = block.y - player.height; player.vy = 0; player.grounded = true;
+                    if (block.type === 'disappearFloor') block.triggered = true;
                 }
                 else if (player.vy < 0 && player.y - player.vy >= block.y + block.height) {
                     player.y = block.y + block.height; player.vy = 0;
@@ -466,31 +454,19 @@ function update() {
 // 描画メイン
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // ブロック・ギミック
     blocks.forEach(block => {
         if (block.type === 'spike') drawSpike(block.x, block.y, block.width, block.height);
         else drawBlock(block);
     });
-
-    // 罠キノコ
     drawItem();
-
-    // 敵
     enemies.forEach(enemy => { if (enemy.alive) drawCatCharacter(enemy.x, enemy.y, false); });
-
-    // ミサイル（おにぎり）
     if (missile && missile.triggered) {
         let mx = missile.x - cameraX;
         ctx.fillStyle = "#fff"; ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(mx + 17, missile.y); ctx.lineTo(mx + 34, missile.y + 34); ctx.lineTo(mx, missile.y + 34); ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#000"; ctx.fillRect(mx + 10, missile.y + 24, 14, 10); // 海苔
+        ctx.fillStyle = "#000"; ctx.fillRect(mx + 10, missile.y + 24, 14, 10);
     }
-
-    // プレイヤー
     drawCatCharacter(player.x, player.y, true);
-
-    // UI
     ctx.fillStyle = "#fff"; ctx.font = "20px 'DotGothic16'"; ctx.textAlign = "left";
     ctx.fillText(`× ${deathCount}`, 30, 40);
 }
@@ -499,8 +475,7 @@ function triggerGameOver(msg) { gameActive = false; deathCount++; gameOverMessag
 
 function drawGameOverScreen() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#ff3333"; ctx.font = "bold 40px 'DotGothic16'";
+    ctx.textAlign = "center"; ctx.fillStyle = "#ff3333"; ctx.font = "bold 40px 'DotGothic16'";
     ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
     ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'";
     ctx.fillText("(´・ω・`) < ｼｮﾎﾞｰﾝ", canvas.width / 2, canvas.height / 2 + 10);
@@ -512,8 +487,7 @@ function drawGameOverScreen() {
 
 function drawClearScreen() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#00ffcc"; ctx.font = "bold 40px 'DotGothic16'";
+    ctx.textAlign = "center"; ctx.fillStyle = "#00ffcc"; ctx.font = "bold 40px 'DotGothic16'";
     ctx.fillText("STAGE CLEAR!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'";
     ctx.fillText("(`・ω・`) シャキーン！", canvas.width / 2, canvas.height / 2 + 20);
