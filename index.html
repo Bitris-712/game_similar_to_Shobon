@@ -447,8 +447,6 @@ function update() {
                     // すでに出現している隠しトゲに「横や上から」触れた場合の即死処理
                     if (block.type === 'hiddenSpike') {
                         triggerGameOver("出現したトゲに刺さってお亡くなりになったお。");
-                    }else{
-                        triggerGameOver("出現した隠しブロックに激突して粉砕したお。");
                     }
                 }
             }
@@ -468,11 +466,7 @@ function update() {
         // 通常のトゲ、および【出現済みの隠しトゲ】の接触死亡判定
         if (block.type === 'spike' || (block.type === 'hiddenSpike' && block.triggered)) { 
             if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) {
-                if (block.type === 'hiddenSpike') {
-                    triggerGameOver("出現したトゲに刺さってお亡くなりになったお。");
-                } else {
-                    triggerGameOver("トゲを踏んでお亡くなりになったお。");
-                }
+                triggerGameOver("見えているトゲに突っ込むなんて、うっかり屋さんだお。");
             }
             return; 
         }
