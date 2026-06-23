@@ -111,8 +111,10 @@ function initStage() {
         // 次の地面
         { x: 1000, y: 400, width: 600, height: 50, type: 'floor' },
         
-        // 本家風の緑の障害物（土管に見立てたブロック）
+        // テンポよく行かせない為の空中隠しトゲ
         { x: 1168, y: 300, width: 32, height: 32, type: 'hiddenSpike', triggered: false },
+
+        // 本家風の緑の障害物（土管に見立てたブロック）
         { x: 1200, y: 336, width: 48, height: 64, type: 'pipe' },
         { x: 1450, y: 304, width: 48, height: 96, type: 'pipe' }, // ここを越えるとミサイル発動
 
@@ -125,10 +127,10 @@ function initStage() {
         { x: 1980, y: 400, width: 150, height: 50, type: 'floor' },
         { x: 1980, y: -150, width: 150, height: 150, type: 'fallingCeiling', vy: 0, triggered: false },
 
-        // ラスト地帯
+        // 偽ゴール前の地面
         { x: 2250, y: 400, width: 1100, height: 50, type: 'floor' },
         
-        // ゴール前の階段状ブロック
+        // 偽ゴール前の階段状ブロック
         { x: 2700, y: 368, width: 32, height: 32, type: 'brick' },
         { x: 2732, y: 368, width: 32, height: 32, type: 'brick' },
         { x: 2732, y: 336, width: 32, height: 32, type: 'brick' },
@@ -141,7 +143,7 @@ function initStage() {
         { x: 2796, y: 272, width: 32, height: 32, type: 'brick' },
         { x: 2828, y: 368, width: 32, height: 32, type: 'brick' },
         { x: 2828, y: 336, width: 32, height: 32, type: 'brick' },
-        { x: 2828, y: 304, width: 32, height: 32, height: 32, type: 'brick' },
+        { x: 2828, y: 304, width: 32, height: 32, type: 'brick' },
         { x: 2828, y: 272, width: 32, height: 32, type: 'brick' },
         { x: 2828, y: 240, width: 32, height: 32, type: 'brick' },
 
@@ -160,6 +162,8 @@ function initStage() {
 
         // ★穴の手前にある「初見殺し隠しブロック」
         { x: 3310, y: 250, width: 32, height: 32, type: 'hidden', triggered: false },
+
+        // ★ゴール（ポール）
         { x: 3750, y: 150, width: 8, height: 250, type: 'realGoal' }
     ];
 }
@@ -228,10 +232,15 @@ function drawBlock(block) {
         ctx.strokeStyle = "#000"; ctx.strokeRect(rx, ry, block.width, block.height);
         ctx.fillStyle = "#009922"; ctx.fillRect(rx, ry, 8, block.height);
     }
+    // ✅ 隠し系ブロックの描画処理を修正（hiddenSpikeが出現したらトゲとして描画する）
     else if (block.type === 'hidden' || block.type === 'hiddenSpike') {
         if (!block.triggered) return; 
-        ctx.fillStyle = "#bbbbbb"; ctx.fillRect(rx, ry, block.width, block.height);
-        ctx.strokeStyle = "#000"; ctx.strokeRect(rx, ry, block.width, block.height);
+        if (block.type === 'hiddenSpike') {
+            drawSpike(block.x, block.y, block.width, block.height);
+        } else {
+            ctx.fillStyle = "#bbbbbb"; ctx.fillRect(rx, ry, block.width, block.height);
+            ctx.strokeStyle = "#000"; ctx.strokeRect(rx, ry, block.width, block.height);
+        }
     }
     else if (block.type === 'dropFloor') {
         ctx.fillStyle = "#cc9966"; ctx.fillRect(rx, ry, block.width, block.height);
@@ -371,25 +380,22 @@ function update() {
 
         if (block.type === 'disappearFloor' && block.triggered) return;
 
-        // ✅ 隠しブロック判定（新規ロジックに差し替え）
+        // 隠しブロック判定
         if (block.type === 'hidden' || block.type === 'hiddenSpike') {
             if (player.x < block.x + block.width && player.x + player.width > block.x &&
                 player.y < block.y + block.height && player.y + player.height > block.y) {
                 
                 if (!block.triggered) {
-                    // まだ出現していない場合：下から頭をぶつけた時のみ出現フラグを立てる
                     if (player.vy < 0 && (player.y - player.vy) >= block.y + block.height) {
                         block.triggered = true;
                         player.vy = 0;
                         player.y = block.y + block.height;
                         
-                        // もし中身がトゲ付きの隠しブロックなら、頭突きした時点で即死
                         if (block.type === 'hiddenSpike') {
                             triggerGameOver("予測不能のトゲが脳天を貫いたお。");
                         }
                     }
                 } else {
-                    // すでに出現している場合：全方位（上・左右）どの衝突でも即死させる
                     triggerGameOver("出現した隠しブロックに激突して粉砕したお。");
                 }
             }
@@ -407,7 +413,7 @@ function update() {
         }
 
         // トゲ・ゴール
-        if (block.type === 'spike' || (block.type === 'hiddenSpike' && block.triggered)) {
+        if (block.type === 'spike') {
             if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) {
                 triggerGameOver("トゲを踏んでお亡くなりになったお。");
             }
