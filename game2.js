@@ -20,7 +20,8 @@ function initStage() {
         { x: 1200, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 1050, rightBound: 1350, alive: true, type: 'jumper', vy: 0, grounded: true, baseY: 368 },
         
         // 新敵：空中を不気味に浮遊するモララー（足場の間に配置）
-        { x: 2400, y: 220, width: 32, height: 32, speed: 1.5, leftBound: 2300, rightBound: 2550, alive: true, type: 'normal' } 
+        { x: 2400, y: 300, width: 32, height: 32, speed: 2.5, leftBound: 2300, rightBound: 2550, alive: true, type: 'normal' } ,
+        { x: 2480, y: 340, width: 32, height: 32, speed: 2.5, leftBound: 2400, rightBound: 2600, alive: true, type: 'normal' }
     ];
 
     // 二面のブロックマップ（拡張版）
@@ -51,34 +52,38 @@ function initStage() {
         { x: 1664, y: 280, width: 32, height: 32, type: 'brick', triggered: false },
 
         // トゲトゲ地帯
-        { x: 1800, y: 400, width: 500, height: 50, type: 'floor' },
+        { x: 1800, y: 400, width: 450, height: 50, type: 'floor' },
         { x: 1868, y: 260, width: 32, height: 32, type: 'hidden', triggered: false },
         { x: 1900, y: 368, width: 32, height: 32, type: 'spike' },
         { x: 1932, y: 368, width: 32, height: 32, type: 'spike' },
         { x: 1964, y: 368, width: 32, height: 32, type: 'spike' },
 
-        // ーーー ここから新エリア ーーー
+        // 地面にトゲ、新キャラ
+        { x: 2300, y: 432, width: 128, height: 50, type: 'floor' },
+        { x: 2300, y: 400, width: 32, height: 50, type: 'floor' },
+        { x: 2332, y: 400, width: 32, height: 32, type: 'spike' },
+        { x: 2364, y: 400, width: 32, height: 32, type: 'spike' },
+        { x: 2396, y: 400, width: 32, height: 50, type: 'floor' },
+        { x: 2480, y: 432, width: 128, height: 50, type: 'floor' },
+        { x: 2480, y: 400, width: 32, height: 50, type: 'floor' },
+        { x: 2512, y: 400, width: 32, height: 32, type: 'spike' },
+        { x: 2544, y: 400, width: 32, height: 32, type: 'spike' },
 
-        // 難所1：【新ギミック】乗ると落ちる崩壊床地帯（落ちる前にジャンプ！）
-        { x: 2350, y: 320, width: 48, height: 16, type: 'dropFloor', vy: 0, triggered: false },
-        { x: 2450, y: 260, width: 48, height: 16, type: 'dropFloor', vy: 0, triggered: false },
-        { x: 2550, y: 320, width: 48, height: 16, type: 'dropFloor', vy: 0, triggered: false },
-        { x: 2300, y: 400, width: 400, height: 50, type: 'floor' },
-
-        // 難所2：1マスのスパイクが地面に埋まっている
+        // マスの間にトゲが埋まっている＋隠しブロック
+        { x: 2668, y: 400, width: 32, height: 50, type: 'floor' },
         { x: 2700, y: 432, width: 682, height: 50, type: 'floor' },
         { x: 2700, y: 400, width: 32, height: 32, type: 'spike' },
-        { x: 2732, y: 400, width: 64, height: 32, type: 'floor' },
+        { x: 2732, y: 400, width: 64, height: 50, type: 'floor' },
         { x: 2796, y: 400, width: 32, height: 32, type: 'spike' },
         { x: 2828, y: 400, width: 32, height: 32, type: 'spike' },
-        { x: 2860, y: 400, width: 32, height: 32, type: 'floor' },
+        { x: 2860, y: 400, width: 32, height: 50, type: 'floor' },
         { x: 2892, y: 400, width: 32, height: 32, type: 'spike' },
         { x: 2924, y: 400, width: 32, height: 32, type: 'spike' },
-        { x: 2956, y: 400, width: 32, height: 32, type: 'floor' },
+        { x: 2956, y: 400, width: 32, height: 50, type: 'floor' },
         { x: 2988, y: 400, width: 32, height: 32, type: 'spike' },
-        { x: 3020, y: 400, width: 64, height: 32, type: 'floor' },
+        { x: 3020, y: 400, width: 64, height: 50, type: 'floor' },
         { x: 3084, y: 400, width: 32, height: 32, type: 'spike' },
-        { x: 3116, y: 400, width: 96, height: 32, type: 'floor' },
+        { x: 3116, y: 400, width: 96, height: 50, type: 'floor' },
         { x: 3180, y: 300, width: 32, height: 32, type: 'hidden', triggered: false },
         { x: 3212, y: 400, width: 32, height: 32, type: 'spike' },
         { x: 3244, y: 400, width: 32, height: 32, type: 'spike' },
