@@ -141,8 +141,9 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// --- 物理パラメータ ---
+// --- 物理パラメータ・進行管理 ---
 const gravity = 0.55;
+let currentStage = 1; // 現在のステージ管理フラグ
 let gameActive = true;
 let gameCleared = false;
 let gamePaused = false; 
@@ -152,7 +153,6 @@ let gameOverMessage = "";
 // --- タイマー用変数 ---
 let startTime = 0;
 let elapsedTime = 0;
-let timerId = null;
 
 let cameraX = 0;
 const stageWidth = 4500; 
@@ -172,77 +172,38 @@ let blocks = [];
 let enemies = [];
 let missile = null;
 
-function initStage() {
-    gameActive = true;
-    gameCleared = false;
-    gamePaused = false;
-    cameraX = 0;
-    
-    player.x = 80; player.y = 350; player.vx = 0; player.vy = 0; player.grounded = false;
-    item.active = false;
-
-    missile = { x: 1900, y: 320, width: 34, height: 34, speed: 9, triggered: false };
-
-    enemies = [
-        { x: 420, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 200, rightBound: 540, alive: true, type: 'normal' },
-        { x: 1350, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 1200, rightBound: 1500, alive: true, type: 'normal' },
-        // AI搭載ジャンプモララー (物理演算用にvyとgrounded、初期位置のyベースを追加)
-        { x: 3650, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 3600, rightBound: 4000, alive: true, type: 'jumper', vy: 0, grounded: true, baseY: 368 }
-    ];
-
-    blocks = [
-        { x: 0, y: 400, width: 650, height: 50, type: 'floor' },
-        { x: 240, y: 260, width: 32, height: 32, type: 'brick' },
-        { x: 272, y: 260, width: 32, height: 32, type: 'question_poison', triggered: false }, 
-        { x: 304, y: 260, width: 32, height: 32, type: 'brick_broken' }, 
-        { x: 336, y: 260, width: 32, height: 32, type: 'brick' },
-        { x: 610, y: 250, width: 32, height: 32, type: 'hidden', triggered: false },
-        { x: 770, y: 320, width: 120, height: 24, type: 'dropFloor', vy: 0, triggered: false },
-        { x: 1000, y: 400, width: 600, height: 50, type: 'floor' },
-        { x: 1168, y: 300, width: 32, height: 32, type: 'hiddenSpike', triggered: false },
-        { x: 1200, y: 336, width: 48, height: 64, type: 'pipe' },
-        { x: 1450, y: 304, width: 48, height: 96, type: 'pipe' }, 
-        { x: 1680, y: 400, width: 200, height: 50, type: 'floor' },
-        { x: 1738, y: 240, width: 32, height: 32, type: 'hiddenSpike', triggered: false },
-        { x: 1740, y: 368, width: 32, height: 32, type: 'spike' },
-        { x: 1980, y: 400, width: 150, height: 50, type: 'floor' },
-        { x: 1980, y: -150, width: 150, height: 150, type: 'fallingCeiling', vy: 0, triggered: false },
-        { x: 2250, y: 400, width: 1100, height: 50, type: 'floor' },
-        { x: 2700, y: 368, width: 32, height: 32, type: 'brick' },
-        { x: 2732, y: 368, width: 32, height: 32, type: 'brick' },
-        { x: 2732, y: 336, width: 32, height: 32, type: 'brick' },
-        { x: 2764, y: 368, width: 32, height: 32, type: 'brick' },
-        { x: 2764, y: 336, width: 32, height: 32, type: 'brick' },
-        { x: 2764, y: 304, width: 32, height: 32, type: 'brick' },
-        { x: 2796, y: 368, width: 32, height: 32, type: 'brick' },
-        { x: 2796, y: 336, width: 32, height: 32, type: 'brick' },
-        { x: 2796, y: 304, width: 32, height: 32, type: 'brick' },
-        { x: 2796, y: 272, width: 32, height: 32, type: 'brick' },
-        { x: 2828, y: 368, width: 32, height: 32, type: 'brick' },
-        { x: 2828, y: 336, width: 32, height: 32, type: 'brick' },
-        { x: 2828, y: 304, width: 32, height: 32, type: 'brick' },
-        { x: 2828, y: 272, width: 32, height: 32, type: 'brick' },
-        { x: 2828, y: 240, width: 32, height: 32, type: 'brick' },
-        { x: 2920, y: 150, width: 8, height: 250, type: 'fakeGoal' },
-        { x: 3310, y: 250, width: 32, height: 32, type: 'hidden', triggered: false },
-        { x: 3450, y: 400, width: 32, height: 50, type: 'floor' },
-        { x: 3450, y: 400, width: 128, height: 50, type: 'disappearFloor', triggered: false },
-        { x: 3578, y: 400, width: 1000, height: 50, type: 'floor' },
-        { x: 4250, y: 150, width: 8, height: 250, type: 'realGoal' }
-    ];
-
-    if (startTime === 0) {
-        startTime = Date.now();
-    } else {
-        startTime = Date.now() - elapsedTime;
-    }
-}
-
+// ポーズ時の完全初期化
 function fullResetGame() {
     deathCount = 0;
     elapsedTime = 0;
     startTime = Date.now();
-    initStage();
+    // 1面に戻す
+    if (currentStage !== 1) {
+        currentStage = 1;
+        loadStageScript("game1.js");
+    } else {
+        initStage();
+    }
+}
+
+// 外部ファイルを動的に読み込み直すシステム
+function loadStageScript(scriptName) {
+    // 既存の古いステージスクリプトがあれば削除
+    const oldScript = document.getElementById("stage-script");
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement("script");
+    script.src = scriptName;
+    script.id = "stage-script";
+    script.onload = () => {
+        initStage();
+    };
+    document.body.appendChild(script);
+}
+
+// 次のステージへ進む準備（画面をクリア状態にして止める）
+function nextStage() {
+    gameCleared = true; // クリア画面を表示してゲームの更新を止める
 }
 
 function togglePause() {
@@ -260,6 +221,19 @@ const keys = { ArrowLeft: false, ArrowRight: false, Space: false };
 window.addEventListener("keydown", e => {
     if (e.code === "Escape") { togglePause(); return; }
     if (gamePaused) { if (e.code === "KeyR") fullResetGame(); return; }
+    
+    // --- クリア画面でRキーを押した時のステージ移行処理 ---
+    if (gameCleared) {
+        if (e.code === "KeyR") {
+            if (currentStage === 1) {
+                currentStage = 2;
+                gameCleared = false;
+                loadStageScript("game2.js");
+            }
+        }
+        return;
+    }
+
     if (e.code === "ArrowRight" || e.code === "KeyD") keys.ArrowRight = true;
     if (e.code === "ArrowLeft" || e.code === "KeyA") keys.ArrowLeft = true;
     if (e.code === "Space" || e.code === "ArrowUp") keys.Space = true;
@@ -283,7 +257,18 @@ function setupMobileControls() {
     bindBtn("btn-jump", "Space");
     document.getElementById("btn-reset").addEventListener("touchstart", (e) => {
         e.preventDefault();
-        if (gamePaused) fullResetGame(); else initStage();
+        if (gamePaused) {
+            fullResetGame();
+        } else if (gameCleared) {
+            // --- クリア画面でRボタンが押されたら2面へ進む ---
+            if (currentStage === 1) {
+                currentStage = 2;
+                gameCleared = false;
+                loadStageScript("game2.js");
+            }
+        } else {
+            initStage();
+        }
     });
     document.getElementById("btn-pause").addEventListener("touchstart", (e) => { e.preventDefault(); togglePause(); });
 }
@@ -301,7 +286,7 @@ function drawBlock(block) {
     let rx = block.x - cameraX; let ry = block.y;
     if (block.type === 'disappearFloor' && block.triggered) return;
     if (block.type === 'floor' || block.type === 'disappearFloor') {
-        ctx.fillStyle = "#cc9966"; ctx.fillRect(rx, ry, block.width, block.height);
+        ctx.fillStyle = currentStage === 1 ? "#cc9966" : "#665544"; ctx.fillRect(rx, ry, block.width, block.height);
         ctx.fillStyle = "#000"; ctx.fillRect(rx, ry, block.width, 2);
         ctx.fillStyle = "#996633"; for(let i=0; i<block.width; i+=16) ctx.fillRect(rx+i, ry+10, 4, 4);
     } 
@@ -395,59 +380,43 @@ function update() {
         }
     }
 
-    if (player.x > 1450 && !missile.triggered) missile.triggered = true;
-    if (missile.triggered) {
+    if (missile && player.x > 1450 && !missile.triggered) missile.triggered = true;
+    if (missile && missile.triggered) {
         missile.x -= missile.speed;
         if (player.x < missile.x + missile.width && player.x + player.width > missile.x && player.y < missile.y + missile.height && player.y + player.height > missile.y) {
             triggerGameOver("おにぎり（物理）の超高速直撃を受けたお。");
         }
     }
 
-    // 敵の移動とAI処理
     enemies.forEach(enemy => {
         if (!enemy.alive) return;
 
-        // --- ジャンプ型AIの処理 ---
         if (enemy.type === 'jumper') {
-            // 横移動の処理
             enemy.x += enemy.speed;
             if (enemy.x < enemy.leftBound || enemy.x > enemy.rightBound) enemy.speed *= -1;
 
-            // AIトリガー：プレイヤーが横250px以内にいて、かつジャンプ中(空中)なら迎撃ジャンプ
             let distX = Math.abs(player.x - enemy.x);
             if (distX < 250 && !player.grounded && player.vy < 0 && enemy.grounded) {
-                enemy.vy = -11; // プレイヤーよりほんの少し低い高度でジャンプ
+                enemy.vy = -11; 
                 enemy.grounded = false;
             }
 
-            // 敵の空中物理
             if (!enemy.grounded) {
                 enemy.vy += gravity;
                 enemy.y += enemy.vy;
-                // 元の床の高さ（baseY）に着地したか判定
-                if (enemy.y >= enemy.baseY) {
-                    enemy.y = enemy.baseY;
-                    enemy.vy = 0;
-                    enemy.grounded = true;
-                }
+                if (enemy.y >= enemy.baseY) { enemy.y = enemy.baseY; enemy.vy = 0; enemy.grounded = true; }
             }
         } else {
-            // 通常の敵の処理
             enemy.x += enemy.speed;
             if (enemy.x < enemy.leftBound || enemy.x > enemy.rightBound) enemy.speed *= -1;
         }
 
-        // プレイヤーとの当たり判定
         if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x && player.y < enemy.y + enemy.height && player.y + player.height > enemy.y) {
-            // 敵を踏んづけた判定 (敵がジャンプ中であっても上から踏めば倒せる)
             if (player.vy > 0 && player.y + player.height - player.vy <= enemy.y + 14) {
                 enemy.alive = false; player.vy = -7.5; player.y = enemy.y - player.height;
             } else {
-                if(enemy.type === 'jumper') {
-                    triggerGameOver("対空ジャンプしたモララーの超対空アタックを喰らったお。");
-                } else {
-                    triggerGameOver("モララーに触れて即死したお。");
-                }
+                if(enemy.type === 'jumper') triggerGameOver("対空ジャンプしたモララーの超対空アタックを喰らったお。");
+                else triggerGameOver("モララーに触れて即死したお。");
             }
         }
     });
@@ -460,16 +429,31 @@ function update() {
         }
         if (block.type === 'disappearFloor' && block.triggered) return;
 
+        // --- 隠しブロック・隠しトゲの出現処理 ---
         if (block.type === 'hidden' || block.type === 'hiddenSpike') {
             if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) {
                 if (!block.triggered) {
+                    // 下から頭をぶつけた時に初めて出現する
                     if (player.vy < 0 && (player.y - player.vy) >= block.y + block.height) {
-                        block.triggered = true; player.vy = 0; player.y = block.y + block.height;
-                        if (block.type === 'hiddenSpike') triggerGameOver("予測不能のトゲが脳天を貫いたお。");
+                        block.triggered = true; 
+                        player.vy = 0; 
+                        player.y = block.y + block.height;
+                        if (block.type === 'hiddenSpike') {
+                            triggerGameOver("予測不能のトゲが脳天を貫いたお。");
+                            return;
+                        }
                     }
-                } else { triggerGameOver("出現した隠しブロックに激突して粉砕したお。"); }
+                } else {
+                    // すでに出現している隠しトゲに「横や上から」触れた場合の即死処理
+                    if (block.type === 'hiddenSpike') {
+                        triggerGameOver("出現したトゲに刺さってお亡くなりになったお。");
+                    }else{
+                        triggerGameOver("出現した隠しブロックに激突して粉砕したお。");
+                    }
+                }
             }
-            return; 
+            // まだ出現していない隠しオブジェクトは、通常の床判定（接触して足場になる処理）を通さないようにブロックする
+            if (!block.triggered) return; 
         }
 
         if (block.type === 'question_poison' && !block.triggered) {
@@ -481,10 +465,24 @@ function update() {
             }
         }
 
-        if (block.type === 'spike') { if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) triggerGameOver("トゲを踏んでお亡くなりになったお。"); return; }
+        // 通常のトゲ、および【出現済みの隠しトゲ】の接触死亡判定
+        if (block.type === 'spike' || (block.type === 'hiddenSpike' && block.triggered)) { 
+            if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) {
+                if (block.type === 'hiddenSpike') {
+                    triggerGameOver("出現したトゲに刺さってお亡くなりになったお。");
+                } else {
+                    triggerGameOver("トゲを踏んでお亡くなりになったお。");
+                }
+            }
+            return; 
+        }
+        
         if (block.type === 'fakeGoal') { if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) triggerGameOver("偽物のゴールだお！ポールの先には虚無しかないお！"); return; }
-        if (block.type === 'realGoal') { if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) gameCleared = true; return; }
+        
+        // ゴール接触で次へ
+        if (block.type === 'realGoal') { if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) nextStage(); return; }
 
+        // 通常のソリッドな地形（床・ブロック）の衝突判定
         if (block.type !== 'hidden' && block.type !== 'hiddenSpike' || block.triggered) {
             if (player.x < block.x + block.width && player.x + player.width > block.x && player.y < block.y + block.height && player.y + player.height > block.y) {
                 if (block.type === 'dropFloor' && !block.triggered) block.triggered = true;
@@ -526,8 +524,9 @@ function draw() {
     drawCatCharacter(player.x, player.y, true);
     
     ctx.fillStyle = "#fff"; ctx.font = "20px 'DotGothic16'"; ctx.textAlign = "left";
-    ctx.fillText(`× ${deathCount}`, 30, 40);
-    ctx.fillText(`Time: ${formatTime(elapsedTime)}`, 120, 40);
+    ctx.fillText(`STAGE ${currentStage}`, 30, 40);
+    ctx.fillText(`× ${deathCount}`, 150, 40);
+    ctx.fillText(`Time: ${formatTime(elapsedTime)}`, 240, 40);
 }
 
 function triggerGameOver(msg) { gameActive = false; deathCount++; gameOverMessage = msg; }
@@ -537,8 +536,8 @@ function drawPauseScreen() {
     ctx.textAlign = "center"; ctx.fillStyle = "#ffff33"; ctx.font = "bold 40px 'DotGothic16'";
     ctx.fillText("PAUSE", canvas.width / 2, canvas.height / 2 - 50);
     ctx.fillStyle = "#fff"; ctx.font = "20px 'DotGothic16'"; ctx.fillText("一時停止中だお (´・ω・`)", canvas.width / 2, canvas.height / 2);
-    ctx.fillStyle = "#ff5555"; ctx.font = "16px 'DotGothic16'"; ctx.fillText("Rボタン / Rキー : はじめからやり男す(タイム・死亡数リセット)", canvas.width / 2, canvas.height / 2 + 50);
-    ctx.fillStyle = "#aaaaaa"; ctx.font = "14px 'DotGothic16'"; ctx.fillText("Pボタン / Escキー : ゲームに戻る", canvas.width / 2, canvas.height / 2 + 80);
+    ctx.fillStyle = "#ff5555"; ctx.font = "16px 'DotGothic16'"; ctx.fillText("Rボタン / Rキー : はじめからやり直す(タイム・死亡数リセット)", canvas.width / 2, canvas.height / 2 + 50);
+    ctx.font = "14px 'DotGothic16'"; ctx.fillStyle = "#aaa"; ctx.fillText("Pボタン / Escキー : ゲームに戻る", canvas.width / 2, canvas.height / 2 + 80);
 }
 
 function drawGameOverScreen() {
@@ -552,14 +551,27 @@ function drawGameOverScreen() {
 
 function drawClearScreen() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = "center"; ctx.fillStyle = "#00ffcc"; ctx.font = "bold 40px 'DotGothic16'";
-    ctx.fillText("STAGE CLEAR!", canvas.width / 2, canvas.height / 2 - 40);
-    ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'"; ctx.fillText("(`・ω・`) シャキーン！", canvas.width / 2, canvas.height / 2 + 10);
-    ctx.fillStyle = "#ffcc00"; ctx.font = "18px 'DotGothic16'"; ctx.fillText(`記録: ${formatTime(elapsedTime)} 秒だお！`, canvas.width / 2, canvas.height / 2 + 55);
-    ctx.fillText(`死亡回数: ${deathCount} 回だお！`, canvas.width / 2, canvas.height / 2 + 85);
+    ctx.textAlign = "center"; 
+    
+    if (currentStage === 1) {
+        // 1面クリア時の表示
+        ctx.fillStyle = "#00ffcc"; ctx.font = "bold 40px 'DotGothic16'";
+        ctx.fillText("STAGE 1 CLEAR!", canvas.width / 2, canvas.height / 2 - 40);
+        ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'"; ctx.fillText("(`・ω・`) まだまだ序の口だお！", canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillStyle = "#ffcc00"; ctx.font = "18px 'DotGothic16'"; ctx.fillText(`1面クリアタイム: ${formatTime(elapsedTime)} 秒だお！`, canvas.width / 2, canvas.height / 2 + 55);
+        ctx.fillStyle = "#ffffff"; ctx.font = "16px 'DotGothic16'"; ctx.fillText("Rキー / Rボタン を押して第2ステージへ進むお！", canvas.width / 2, canvas.height / 2 + 95);
+    } else {
+        // 2面クリア（全クリア）時の表示
+        ctx.fillStyle = "#ff33cc"; ctx.font = "bold 40px 'DotGothic16'";
+        ctx.fillText("ALL STAGE CLEAR!", canvas.width / 2, canvas.height / 2 - 40);
+        ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'"; ctx.fillText("(`・ω・`) 全ステージ完全制覇だお！", canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillStyle = "#ffcc00"; ctx.font = "18px 'DotGothic16'"; ctx.fillText(`総タイム: ${formatTime(elapsedTime)} 秒だお！`, canvas.width / 2, canvas.height / 2 + 55);
+        ctx.fillText(`トータル死亡回数: ${deathCount} 回だお！`, canvas.width / 2, canvas.height / 2 + 85);
+    }
 }
 
-initStage();
+// 最初のステージ（game1.js）をロードしてループを開始
+loadStageScript("game1.js");
 update();
 </script>
 </body>
