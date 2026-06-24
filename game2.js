@@ -85,6 +85,7 @@ function initStage() {
         { x: 3084, y: 400, width: 32, height: 32, type: 'spike' },
         { x: 3116, y: 400, width: 96, height: 50, type: 'floor' },
         { x: 3180, y: 300, width: 32, height: 32, type: 'hidden', triggered: false },
+        { x: 3200, y: 200, width: 32, height: 32, type: 'hidden', triggered: false },
         { x: 3212, y: 400, width: 32, height: 32, type: 'spike' },
         { x: 3244, y: 400, width: 32, height: 32, type: 'spike' },
         { x: 3276, y: 400, width: 32, height: 32, type: 'spike' },
