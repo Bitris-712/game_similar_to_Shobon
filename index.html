@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
     <title>しょぼん風のアクション</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyB7qJDp29Z8cBo71hgadtYS1M_z300sNXE",
+        authDomain: "game-similar-to-shobon.firebaseapp.com",
+        databaseURL: "https://game-similar-to-shobon-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "game-similar-to-shobon",
+        storageBucket: "game-similar-to-shobon.firebasestorage.app",
+        messagingSenderId: "669054969340",
+        appId: "1:669054969340:web:5aa05f8c32ab6d4f243e79"
+    };
+
+    // データベースを使えるように初期化
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    </script>
+
+    <script src="ai.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
         
@@ -229,6 +250,14 @@ window.addEventListener("keydown", e => {
                 currentStage = 2;
                 gameCleared = false;
                 loadStageScript("game2.js");
+            } else if (currentStage === 2) {
+                currentStage = 3;
+                gameCleared = false;
+                loadStageScript("game3.js");
+            } else {
+                currentStage = 1;
+                gameCleared = false;
+                loadStageScript("game1.js");
             }
         }
         return;
@@ -260,11 +289,19 @@ function setupMobileControls() {
         if (gamePaused) {
             fullResetGame();
         } else if (gameCleared) {
-            // --- クリア画面でRボタンが押されたら2面へ進む ---
+            // --- クリア画面でRボタンが押された時の移行処理（全クリア後ループ対応版） ---
             if (currentStage === 1) {
                 currentStage = 2;
                 gameCleared = false;
                 loadStageScript("game2.js");
+            } else if (currentStage === 2) {
+                currentStage = 3;
+                gameCleared = false;
+                loadStageScript("game3.js");
+            } else { // 💡 スマホのRボタンでも3面クリア後は1面に戻すお！
+                currentStage = 1;
+                gameCleared = false;
+                loadStageScript("game1.js");
             }
         } else {
             initStage();
@@ -391,19 +428,21 @@ function update() {
     enemies.forEach(enemy => {
         if (!enemy.alive) return;
 
-        if (enemy.type === 'jumper') {
+        // 🧠 【3面専用】もし敵のタイプが機械学習AI（ml_boss）なら、ai.jsの学習処理を呼び出す
+        if (enemy.type === 'ml_boss') {
+            // 💡 引数の最後に 「blocks」 を追加したお！
+            updateLearningAI(enemy, player, gravity, blocks); 
+        }
+        // 👾 1面・2面の従来の敵（jumperなど）
+        else if (enemy.type === 'jumper') {
             enemy.x += enemy.speed;
             if (enemy.x < enemy.leftBound || enemy.x > enemy.rightBound) enemy.speed *= -1;
-
             let distX = Math.abs(player.x - enemy.x);
             if (distX < 250 && !player.grounded && player.vy < 0 && enemy.grounded) {
-                enemy.vy = -11; 
-                enemy.grounded = false;
+                enemy.vy = -11; enemy.grounded = false;
             }
-
             if (!enemy.grounded) {
-                enemy.vy += gravity;
-                enemy.y += enemy.vy;
+                enemy.vy += gravity; enemy.y += enemy.vy;
                 if (enemy.y >= enemy.baseY) { enemy.y = enemy.baseY; enemy.vy = 0; enemy.grounded = true; }
             }
         } else {
@@ -411,11 +450,18 @@ function update() {
             if (enemy.x < enemy.leftBound || enemy.x > enemy.rightBound) enemy.speed *= -1;
         }
 
+        // 💥 接触死亡判定
         if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x && player.y < enemy.y + enemy.height && player.y + player.height > enemy.y) {
             if (player.vy > 0 && player.y + player.height - player.vy <= enemy.y + 14) {
-                enemy.alive = false; player.vy = -7.5; player.y = enemy.y - player.height;
+                // AIボスは踏まれても弾き返される（倒せない）仕様
+                if (enemy.type === 'ml_boss') {
+                    player.vy = -10;
+                } else {
+                    enemy.alive = false; player.vy = -7.5; player.y = enemy.y - player.height;
+                }
             } else {
-                if(enemy.type === 'jumper') triggerGameOver("対空ジャンプしたモララーの超対空アタックを喰らったお。");
+                if(enemy.type === 'ml_boss') triggerGameOver("AIモララーにあなたの癖を学習されて即死したお。");
+                else if(enemy.type === 'jumper') triggerGameOver("対空ジャンプしたモララーの超対空アタックを喰らったお。");
                 else triggerGameOver("モララーに触れて即死したお。");
             }
         }
@@ -548,19 +594,28 @@ function drawClearScreen() {
     ctx.textAlign = "center"; 
     
     if (currentStage === 1) {
-        // 1面クリア時の表示
+        // 1面クリア時
         ctx.fillStyle = "#00ffcc"; ctx.font = "bold 40px 'DotGothic16'";
         ctx.fillText("STAGE 1 CLEAR!", canvas.width / 2, canvas.height / 2 - 40);
         ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'"; ctx.fillText("(`・ω・`) まだまだ序の口だお！", canvas.width / 2, canvas.height / 2 + 10);
         ctx.fillStyle = "#ffcc00"; ctx.font = "18px 'DotGothic16'"; ctx.fillText(`1面クリアタイム: ${formatTime(elapsedTime)} 秒だお！`, canvas.width / 2, canvas.height / 2 + 55);
         ctx.fillStyle = "#ffffff"; ctx.font = "16px 'DotGothic16'"; ctx.fillText("Rキー / Rボタン を押して第2ステージへ進むお！", canvas.width / 2, canvas.height / 2 + 95);
-    } else {
-        // 2面クリア（全クリア）時の表示
+
+    } else if (currentStage === 2) {
+        ctx.fillStyle = "#ff9933"; ctx.font = "bold 40px 'DotGothic16'";
+        ctx.fillText("STAGE 2 CLEAR!", canvas.width / 2, canvas.height / 2 - 40);
+        ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'"; ctx.fillText("(`・ω・´) 次がいよいよ本番だお！", canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillStyle = "#ffcc00"; ctx.font = "18px 'DotGothic16'"; ctx.fillText(`2面クリアタイム: ${formatTime(elapsedTime)} 秒だお！`, canvas.width / 2, canvas.height / 2 + 55);
+        ctx.fillStyle = "#ffffff"; ctx.font = "14px 'DotGothic16'"; ctx.fillText("Rキー / Rボタン を押して第3ステージへ進むお！", canvas.width / 2, canvas.height / 2 + 125);
+    
+    }else {
         ctx.fillStyle = "#ff33cc"; ctx.font = "bold 40px 'DotGothic16'";
         ctx.fillText("ALL STAGE CLEAR!", canvas.width / 2, canvas.height / 2 - 40);
-        ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'"; ctx.fillText("(`・ω・`) 全ステージ完全制覇だお！", canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillStyle = "#fff"; ctx.font = "24px 'DotGothic16'"; ctx.fillText("(`・ω・`) AIモララーを破り、完全制覇だお！", canvas.width / 2, canvas.height / 2 + 10);
         ctx.fillStyle = "#ffcc00"; ctx.font = "18px 'DotGothic16'"; ctx.fillText(`総タイム: ${formatTime(elapsedTime)} 秒だお！`, canvas.width / 2, canvas.height / 2 + 55);
         ctx.fillText(`トータル死亡回数: ${deathCount} 回だお！`, canvas.width / 2, canvas.height / 2 + 85);
+        
+        ctx.fillStyle = "#ffffff"; ctx.font = "16px 'DotGothic16'"; ctx.fillText("Rキー / Rボタン を押して もう一度第1ステージから遊ぶお！", canvas.width / 2, canvas.height / 2 + 125);
     }
 }
 

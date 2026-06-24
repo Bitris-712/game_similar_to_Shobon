@@ -16,7 +16,7 @@ function initStage() {
 
     // 二面の敵（ジャンプ、通常に加えて【飛行タイプ】を追加！）
     enemies = [
-        { x: 400, y: 368, width: 32, height: 32, speed: 2.0, leftBound: 250, rightBound: 500, alive: true, type: 'normal' },
+        { x: 400, y: 368, width: 32, height: 32, speed: 2.0, leftBound: 250, rightBound: 400, alive: true, type: 'normal' },
         { x: 1200, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 1050, rightBound: 1350, alive: true, type: 'jumper', vy: 0, grounded: true, baseY: 368 },
         
         // 新敵：空中を不気味に浮遊するモララー（足場の間に配置）
