@@ -261,8 +261,17 @@ function playSE(seKey) {
     }
 }
 
-// ポーズ時の完全初期化
+// 🔥【新機能】死亡SEを強制ストップしてリセットする関数
+function stopDeathSE() {
+    if (seList["death"]) {
+        seList["death"].pause();
+        seList["death"].currentTime = 0; // 音頭に戻す
+    }
+}
+
+// ポーズ時の完全初期化（Rで最初からやり直すとき）
 function fullResetGame() {
+    stopDeathSE(); // 🔥 死亡音を止める
     deathCount = 0;
     elapsedTime = 0;
     startTime = Date.now();
@@ -341,7 +350,10 @@ window.addEventListener("keydown", e => {
     if (e.code === "ArrowRight" || e.code === "KeyD") keys.ArrowRight = true;
     if (e.code === "ArrowLeft" || e.code === "KeyA") keys.ArrowLeft = true;
     if (e.code === "Space" || e.code === "ArrowUp") keys.Space = true;
-    if (e.code === "KeyR") initStage();
+    if (e.code === "KeyR"){
+        stopDeathSE();
+        initStage();
+    } 
 });
 
 window.addEventListener("keyup", e => {
