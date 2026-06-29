@@ -183,7 +183,7 @@ let player = {
     width: 32, height: 32,
     vx: 0, vy: 0,
     grounded: false,
-    speed: 4.2,
+    speed: 6.2,
     jumpForce: 12.2,
     isJumping: false
 };
@@ -636,7 +636,9 @@ function update() {
     if (player.y > canvas.height) triggerGameOver("こんなとこにゴールはないよ。");
 
     draw();
-    requestAnimationFrame(update);
+    setTimeout(() => {
+        requestAnimationFrame(update);
+    }, 1000 / 60);
 }
 
 function formatTime(ms) {

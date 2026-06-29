@@ -16,12 +16,12 @@ function initStage() {
 
     // 二面の敵（ジャンプ、通常に加えて【飛行タイプ】を追加！）
     enemies = [
-        { x: 400, y: 368, width: 32, height: 32, speed: 2.0, leftBound: 250, rightBound: 400, alive: true, type: 'normal' },
-        { x: 1200, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 1050, rightBound: 1350, alive: true, type: 'jumper', vy: 0, grounded: true, baseY: 368 },
+        { x: 400, y: 368, width: 32, height: 32, speed: 4.5, leftBound: 250, rightBound: 400, alive: true, type: 'normal' },
+        { x: 1200, y: 368, width: 32, height: 32, speed: 3.5, leftBound: 1050, rightBound: 1350, alive: true, type: 'jumper', vy: 0, grounded: true, baseY: 368 },
         
         // 新敵：空中を不気味に浮遊するモララー（足場の間に配置）
-        { x: 2400, y: 300, width: 32, height: 32, speed: 2.5, leftBound: 2300, rightBound: 2550, alive: true, type: 'normal' } ,
-        { x: 2480, y: 340, width: 32, height: 32, speed: 2.5, leftBound: 2400, rightBound: 2600, alive: true, type: 'normal' }
+        { x: 2400, y: 300, width: 32, height: 32, speed: 5.5, leftBound: 2300, rightBound: 2550, alive: true, type: 'normal' } ,
+        { x: 2480, y: 340, width: 32, height: 32, speed: 5.5, leftBound: 2400, rightBound: 2600, alive: true, type: 'normal' }
     ];
 
     // 二面のブロックマップ（拡張版）

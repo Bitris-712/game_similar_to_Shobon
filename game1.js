@@ -12,13 +12,13 @@ function initStage() {
     canvas.style.background = "#6699ff";
 
     // 一面専用ミサイル（おにぎり）
-    missile = { x: 1900, y: 320, width: 34, height: 34, speed: 9, triggered: false };
+    missile = { x: 1900, y: 320, width: 34, height: 34, speed: 13, triggered: false };
 
     // 一面の敵データ
     enemies = [
-        { x: 420, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 200, rightBound: 540, alive: true, type: 'normal' },
-        { x: 1350, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 1200, rightBound: 1500, alive: true, type: 'normal' },
-        { x: 3650, y: 368, width: 32, height: 32, speed: 1.5, leftBound: 3600, rightBound: 4000, alive: true, type: 'jumper', vy: 0, grounded: true, baseY: 368 }
+        { x: 420, y: 368, width: 32, height: 32, speed: 4.5, leftBound: 200, rightBound: 540, alive: true, type: 'normal' },
+        { x: 1350, y: 368, width: 32, height: 32, speed: 4.5, leftBound: 1200, rightBound: 1500, alive: true, type: 'normal' },
+        { x: 3650, y: 368, width: 32, height: 32, speed: 3.5, leftBound: 3600, rightBound: 4000, alive: true, type: 'jumper', vy: 0, grounded: true, baseY: 368 }
     ];
 
     // 一面のブロックマップ

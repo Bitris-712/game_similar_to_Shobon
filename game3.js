@@ -17,7 +17,7 @@ function initStage() {
         { 
             x: 1000, y: 368, 
             width: 32, height: 32, 
-            speed: 2.7, 
+            speed: 4.0, 
             alive: true, 
             type: 'ml_boss', 
             vy: 0, 
@@ -46,17 +46,29 @@ function initStage() {
         { x: 900, y: 320, width: 48, height: 80, type: 'pipe' },
 
         { x: 1100, y: 368, width: 32, height: 32, type: 'spike' },
-        { x: 1200, y: 275, width: 32, height: 32, type: 'brick' },
-        { x: 1232, y: 275, width: 32, height: 32, type: 'brick' },
-        { x: 1264, y: 275, width: 32, height: 32, type: 'brick' },
-        { x: 1296, y: 275, width: 32, height: 32, type: 'brick' },
-        { x: 1328, y: 275, width: 32, height: 32, type: 'brick' },
-        { x: 1360, y: 275, width: 32, height: 32, type: 'brick' },
-        { x: 1392, y: 275, width: 32, height: 32, type: 'brick' },
+
+        { x: 1232, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1264, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1296, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1328, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1360, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1392, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1424, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1456, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1488, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1488, y: 240, width: 32, height: 32, type: 'spike' },
+        { x: 1520, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1552, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1584, y: 272, width: 32, height: 32, type: 'brick' },
+        { x: 1584, y: 304, width: 32, height: 32, type: 'brick' },
+
+        { x: 1584, y: 368, width: 32, height: 32, type: 'brick' },
 
         { x: 1758, y: 300, width: 32, height: 32, type: 'hidden', triggered: false },
 
-        { x: 1970, y: 400, width: 500, height: 50, type: 'floor' },
+        { x: 1970, y: 400, width: 32, height: 50, type: 'floor' },
+        { x: 2002, y: 400, width: 160, height: 50, type: 'disappearFloor', triggered: false },
+        { x: 2162, y: 400, width: 300, height: 50, type: 'floor' },
 
         // 本物のゴール
         { x: 2300, y: 150, width: 8, height: 250, type: 'realGoal' } 
